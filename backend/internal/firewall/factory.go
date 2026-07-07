@@ -23,16 +23,44 @@ func NewService(ctx context.Context, cfg config.FirewallConfig, logger *slog.Log
 		return NewCentOSService(base, cfg), nil
 	case "auto", "":
 		osID := readOSID(cfg.OSReleasePath)
-		if osID == "ubuntu" {
+		if osID == "ubuntu" && commandExists(cfg.UFWPath) {
 			return NewUbuntuService(base, cfg), nil
 		}
-		if osID == "centos" || osID == "rhel" || osID == "rocky" || osID == "almalinux" {
+		if isFirewalldOS(osID) && commandExists(cfg.FirewallCmdPath) {
+			return NewCentOSService(base, cfg), nil
+		}
+		if commandExists(cfg.UFWPath) {
+			return NewUbuntuService(base, cfg), nil
+		}
+		if commandExists(cfg.FirewallCmdPath) {
 			return NewCentOSService(base, cfg), nil
 		}
 		return nil, Error{Code: "UNSUPPORTED_OS", Message: "unsupported os id: " + osID}
 	default:
 		return nil, Error{Code: "UNSUPPORTED_OS", Message: "unsupported firewall backend: " + cfg.Backend}
 	}
+}
+
+func isFirewalldOS(osID string) bool {
+	return osID == "centos" || osID == "rhel" || osID == "rocky" || osID == "almalinux" || osID == "fedora"
+}
+
+func commandExists(name string) bool {
+	if name == "" {
+		return false
+	}
+	if strings.Contains(name, "/") {
+		info, err := os.Stat(name)
+		return err == nil && !info.IsDir()
+	}
+	paths := []string{"/usr/sbin/", "/usr/bin/", "/sbin/", "/bin/"}
+	for _, path := range paths {
+		info, err := os.Stat(path + name)
+		if err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func readOSID(path string) string {

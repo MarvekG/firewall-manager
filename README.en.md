@@ -112,7 +112,6 @@ cd dist
 sudo ./install.sh \
   --listen-host 0.0.0.0 \
   --listen-port 10240 \
-  --firewall-backend ufw \
   --admin-user admin \
   --admin-password 'change-this-password' \
   --no-tls \
@@ -126,7 +125,6 @@ cd dist
 sudo ./install.sh \
   --listen-host 0.0.0.0 \
   --listen-port 10240 \
-  --firewall-backend firewalld \
   --firewall-zone public \
   --admin-user admin \
   --admin-password 'change-this-password' \
@@ -141,7 +139,6 @@ cd dist
 sudo ./reinstall.sh \
   --listen-host 0.0.0.0 \
   --listen-port 10240 \
-  --firewall-backend ufw \
   --admin-user admin \
   --admin-password 'change-this-password' \
   --no-tls \

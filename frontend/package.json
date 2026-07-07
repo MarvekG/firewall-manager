@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/generate-favicon.mjs",
     "dev": "vite --host 127.0.0.1",
+    "prebuild": "node scripts/generate-favicon.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1"
   },

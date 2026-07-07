@@ -39,8 +39,11 @@ func (s *UbuntuService) OpenPort(ctx context.Context, request PortChangeRequest)
 	if err != nil {
 		return State{}, err
 	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.UFWPath, "allow", portArg(req)); err != nil {
-		return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
+	specs, _ := ParsePortExpression(req.Port)
+	for _, spec := range specs {
+		if _, err := s.base.Runner.Run(ctx, s.cfg.UFWPath, "allow", ufwPortArg(spec, req.Protocol)); err != nil {
+			return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
+		}
 	}
 	return s.LoadState(ctx)
 }
@@ -50,8 +53,11 @@ func (s *UbuntuService) ClosePort(ctx context.Context, request PortChangeRequest
 	if err != nil {
 		return State{}, err
 	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.UFWPath, "delete", "allow", portArg(req)); err != nil {
-		return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
+	specs, _ := ParsePortExpression(req.Port)
+	for _, spec := range specs {
+		if _, err := s.base.Runner.Run(ctx, s.cfg.UFWPath, "delete", "allow", ufwPortArg(spec, req.Protocol)); err != nil {
+			return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
+		}
 	}
 	return s.LoadState(ctx)
 }

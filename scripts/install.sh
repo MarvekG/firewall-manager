@@ -3,13 +3,13 @@ set -euo pipefail
 
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_SOURCE="$INSTALL_DIR/firewall-manager"
-ADMIN_USER="admin"
-ADMIN_PASSWORD="admin"
+ADMIN_USER=""
+ADMIN_PASSWORD=""
 LISTEN_HOST="127.0.0.1"
 LISTEN_PORT="10240"
 TLS_ENABLED="false"
 ALLOW_INSECURE_REMOTE="false"
-FIREWALL_BACKEND="auto"
+FIREWALL_BACKEND=""
 USE_SUDO="true"
 FIREWALL_ZONE=""
 
@@ -23,7 +23,6 @@ while [[ $# -gt 0 ]]; do
     --tls-key) TLS_KEY="$2"; TLS_ENABLED="true"; shift 2 ;;
     --no-tls) TLS_ENABLED="false"; shift ;;
     --allow-insecure-remote) ALLOW_INSECURE_REMOTE="true"; shift ;;
-    --firewall-backend) FIREWALL_BACKEND="$2"; shift 2 ;;
     --firewall-zone) FIREWALL_ZONE="$2"; shift 2 ;;
     --no-sudo) USE_SUDO="false"; shift ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
@@ -37,6 +36,60 @@ fi
 
 if [[ "$(id -u)" -ne 0 ]]; then
   printf 'Run as root.\n' >&2
+  exit 1
+fi
+
+random_token() {
+  openssl rand -base64 18 2>/dev/null | tr -d '=+/[:space:]' | cut -c1-20
+}
+
+if [[ -z "$ADMIN_USER" ]]; then
+  ADMIN_USER="fm-$(random_token)"
+fi
+if [[ -z "$ADMIN_PASSWORD" ]]; then
+  ADMIN_PASSWORD="$(random_token)$(random_token)"
+fi
+
+has_command() {
+  PATH=/usr/sbin:/usr/bin:/sbin:/bin command -v "$1" >/dev/null 2>&1
+}
+
+detect_firewall_backend() {
+  local os_id=""
+  if [[ -f /etc/os-release ]]; then
+    os_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+  fi
+
+  if [[ "$os_id" == "ubuntu" || "$os_id" == "debian" ]]; then
+    if has_command ufw; then
+      printf 'ufw'
+      return 0
+    fi
+  fi
+
+  case "$os_id" in
+    centos|rhel|rocky|almalinux|fedora)
+      if has_command firewall-cmd; then
+        printf 'firewalld'
+        return 0
+      fi
+      ;;
+  esac
+
+  if has_command ufw; then
+    printf 'ufw'
+    return 0
+  fi
+  if has_command firewall-cmd; then
+    printf 'firewalld'
+    return 0
+  fi
+
+  return 1
+}
+
+if ! FIREWALL_BACKEND="$(detect_firewall_backend)"; then
+  printf 'No supported firewall backend found. Install ufw or firewalld/firewall-cmd first.\n' >&2
   exit 1
 fi
 
@@ -69,26 +122,14 @@ fi
 
 install -m 0644 "$INSTALL_DIR/deploy/firewall-manager.service" /etc/systemd/system/firewall-manager.service
 case "$FIREWALL_BACKEND" in
-  ufw|ubuntu)
+  ufw)
     install -m 0440 "$INSTALL_DIR/deploy/sudoers.ufw" /etc/sudoers.d/firewall-manager
     ;;
-  firewalld|centos)
+  firewalld)
     install -m 0440 "$INSTALL_DIR/deploy/sudoers.firewalld" /etc/sudoers.d/firewall-manager
     ;;
-  auto)
-    if command -v ufw >/dev/null 2>&1; then
-      install -m 0440 "$INSTALL_DIR/deploy/sudoers.ufw" /etc/sudoers.d/firewall-manager
-    elif command -v firewall-cmd >/dev/null 2>&1; then
-      install -m 0440 "$INSTALL_DIR/deploy/sudoers.firewalld" /etc/sudoers.d/firewall-manager
-    else
-      printf 'No ufw or firewall-cmd found; sudoers file was not installed.\n' >&2
-    fi
-    ;;
-  mock)
-    printf 'Mock backend selected; sudoers file was not installed.\n'
-    ;;
   *)
-    printf 'Unknown firewall backend for sudoers install: %s\n' "$FIREWALL_BACKEND" >&2
+    printf 'Unsupported firewall backend: %s\n' "$FIREWALL_BACKEND" >&2
     exit 2
     ;;
 esac
@@ -101,3 +142,4 @@ systemctl enable --now firewall-manager
 printf 'Firewall Manager installed.\n'
 printf 'URL: %s://%s:%s\n' "$([[ "$TLS_ENABLED" == "true" ]] && printf https || printf http)" "$LISTEN_HOST" "$LISTEN_PORT"
 printf 'User: %s\n' "$ADMIN_USER"
+printf 'Password: %s\n' "$ADMIN_PASSWORD"

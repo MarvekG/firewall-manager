@@ -13,8 +13,13 @@ type User = {
   username: string;
 };
 
+type LocaleInfo = {
+  locale: Locale;
+  supportedLocales: Locale[];
+};
+
 type PortRule = {
-  port: number;
+  port: string;
   protocol: 'tcp' | 'udp';
   source?: string;
   description?: string;
@@ -31,6 +36,15 @@ type FirewallState = {
 };
 
 type Locale = 'zh-CN' | 'en-US';
+
+class ApiError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
 
 const messages: Record<Locale, Record<string, string>> = {
   'zh-CN': {
@@ -52,6 +66,7 @@ const messages: Record<Locale, Record<string, string>> = {
     systemSummary: '系统摘要',
     openPorts: '已开放端口',
     portInput: '端口号',
+    portHelp: '支持单个端口、范围和序列，例如 80、8000-8010、80,443,10000-10010。',
     tlsWarning: '当前未启用 HTTPS，请仅在可信网络使用。',
     localHttp: '当前为本机 HTTP 模式。',
     invalidLogin: '用户名或密码错误',
@@ -61,6 +76,25 @@ const messages: Record<Locale, Record<string, string>> = {
     confirmCloseBody: '关闭该端口可能导致依赖它的服务无法从外部访问。',
     cancel: '取消',
     confirm: '确认关闭',
+    yes: '是',
+    no: '否',
+    policyAllow: '允许',
+    policyDeny: '拒绝',
+    policyReject: '拒绝并返回错误',
+    policyUnknown: '未知',
+    sourceAny: '任意来源',
+    previewEmpty: '输入端口后显示操作预览',
+    previewOpen: '将打开 {protocol} {port}',
+    unknownError: '操作失败，请重试。',
+    INVALID_JSON: '请求数据格式无效。',
+    AUTH_INVALID_CREDENTIALS: '用户名或密码错误。',
+    AUTH_REQUIRED: '请先登录。',
+    INTERNAL_ERROR: '服务器内部错误。',
+    FIREWALL_STATE_LOAD_FAILED: '无法读取防火墙状态。',
+    PORT_INVALID: '端口或协议无效。',
+    PROTOCOL_INVALID: '协议必须是 TCP 或 UDP。',
+    PORT_OPEN_FAILED: '打开端口失败。',
+    PORT_CLOSE_FAILED: '关闭端口失败。',
   },
   'en-US': {
     title: 'Firewall Manager',
@@ -81,6 +115,7 @@ const messages: Record<Locale, Record<string, string>> = {
     systemSummary: 'System Summary',
     openPorts: 'Open Ports',
     portInput: 'Port',
+    portHelp: 'Supports a single port, a range, or a sequence, for example 80, 8000-8010, 80,443,10000-10010.',
     tlsWarning: 'HTTPS is disabled. Use only on a trusted network.',
     localHttp: 'Running in local HTTP mode.',
     invalidLogin: 'Invalid username or password',
@@ -90,6 +125,25 @@ const messages: Record<Locale, Record<string, string>> = {
     confirmCloseBody: 'Closing this port may make dependent services unavailable externally.',
     cancel: 'Cancel',
     confirm: 'Close port',
+    yes: 'Yes',
+    no: 'No',
+    policyAllow: 'Allow',
+    policyDeny: 'Deny',
+    policyReject: 'Reject',
+    policyUnknown: 'Unknown',
+    sourceAny: 'Any',
+    previewEmpty: 'Enter a port to preview the operation',
+    previewOpen: 'Will open {protocol} {port}',
+    unknownError: 'Operation failed. Please try again.',
+    INVALID_JSON: 'Invalid request data.',
+    AUTH_INVALID_CREDENTIALS: 'Invalid username or password.',
+    AUTH_REQUIRED: 'Please sign in first.',
+    INTERNAL_ERROR: 'Internal server error.',
+    FIREWALL_STATE_LOAD_FAILED: 'Failed to load firewall state.',
+    PORT_INVALID: 'Invalid port or protocol.',
+    PROTOCOL_INVALID: 'Protocol must be TCP or UDP.',
+    PORT_OPEN_FAILED: 'Failed to open port.',
+    PORT_CLOSE_FAILED: 'Failed to close port.',
   },
 };
 
@@ -101,9 +155,55 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body?.error?.code ?? `HTTP_${response.status}`);
+    const code = body?.error?.code ?? `HTTP_${response.status}`;
+    throw new ApiError(code, body?.error?.message ?? code);
   }
   return response.json() as Promise<T>;
+}
+
+function localizedError(err: unknown, t: Record<string, string>): string {
+  if (err instanceof ApiError) {
+    return t[err.code] ?? err.message ?? t.unknownError;
+  }
+  return err instanceof Error ? err.message : t.unknownError;
+}
+
+function translatePolicy(policy: string, t: Record<string, string>): string {
+  switch (policy.toLowerCase()) {
+    case 'allow':
+      return t.policyAllow;
+    case 'deny':
+      return t.policyDeny;
+    case 'reject':
+      return t.policyReject;
+    default:
+      return t.policyUnknown;
+  }
+}
+
+function translateSource(source: string | undefined, t: Record<string, string>): string {
+  return !source || source.toLowerCase() === 'any' ? t.sourceAny : source;
+}
+
+function isPortExpression(value: string): boolean {
+  if (!value) return false;
+  return value.split(',').every((part) => {
+    const bounds = part.trim().split('-');
+    if (bounds.length > 2) return false;
+    const start = parsePortNumber(bounds[0]);
+    const end = bounds.length === 2 ? parsePortNumber(bounds[1]) : start;
+    return start !== null && end !== null && start <= end;
+  });
+}
+
+function normalizePortExpression(value: string): string {
+  return value.replace(/[\u3001\uFF0C]/g, ',').replace(/[\uFE63\uFF0D\u2010-\u2015]/g, '-');
+}
+
+function parsePortNumber(value: string): number | null {
+  if (!/^\d+$/.test(value.trim())) return null;
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null;
 }
 
 function App() {
@@ -115,6 +215,7 @@ function App() {
   const t = messages[locale];
 
   useEffect(() => {
+    api<LocaleInfo>('/api/locale').then((info) => setLocale(info.locale)).catch(() => undefined);
     api<RuntimeInfo>('/api/runtime').then(setRuntime).catch(() => undefined);
     api<User>('/api/auth/me')
       .then((me) => setUser(me))
@@ -150,7 +251,7 @@ function SecurityBanner({ runtime, t }: { runtime: RuntimeInfo | null; t: Record
 }
 
 function Login({ locale, setLocale, setUser, t }: { locale: Locale; setLocale: (locale: Locale) => void; setUser: (user: User) => void; t: Record<string, string> }) {
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -207,7 +308,7 @@ function Dashboard({ user, locale, setLocale, setUser, t }: { user: User; locale
     try {
       setState(await api<FirewallState>('/api/firewall/state'));
     } catch (err) {
-      setError(String(err instanceof Error ? err.message : err));
+      setError(localizedError(err, t));
     } finally {
       setLoading(false);
     }
@@ -224,19 +325,19 @@ function Dashboard({ user, locale, setLocale, setUser, t }: { user: User; locale
 
   async function openPort(event: React.FormEvent) {
     event.preventDefault();
-    const parsed = Number(port);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
-      setError('PORT_INVALID');
+    const normalizedPort = normalizePortExpression(port).trim();
+    if (!isPortExpression(normalizedPort)) {
+      setError(t.PORT_INVALID);
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const result = await api<{ state: FirewallState }>('/api/firewall/ports', { method: 'POST', body: JSON.stringify({ port: parsed, protocol }) });
+      const result = await api<{ state: FirewallState }>('/api/firewall/ports', { method: 'POST', body: JSON.stringify({ port: normalizedPort, protocol }) });
       setState(result.state);
       setPort('');
     } catch (err) {
-      setError(String(err instanceof Error ? err.message : err));
+      setError(localizedError(err, t));
     } finally {
       setLoading(false);
     }
@@ -246,11 +347,11 @@ function Dashboard({ user, locale, setLocale, setUser, t }: { user: User; locale
     setLoading(true);
     setError('');
     try {
-      const result = await api<{ state: FirewallState }>(`/api/firewall/ports/${rule.protocol}/${rule.port}`, { method: 'DELETE' });
+      const result = await api<{ state: FirewallState }>(`/api/firewall/ports/${rule.protocol}/${encodeURIComponent(rule.port)}`, { method: 'DELETE' });
       setState(result.state);
       setClosing(null);
     } catch (err) {
-      setError(String(err instanceof Error ? err.message : err));
+      setError(localizedError(err, t));
     } finally {
       setLoading(false);
     }
@@ -282,13 +383,14 @@ function Dashboard({ user, locale, setLocale, setUser, t }: { user: User; locale
             <h2 className="mb-4 text-xl font-semibold">{t.openPort}</h2>
             <form onSubmit={openPort} className="space-y-4">
               <label className="block text-sm text-slate-300" htmlFor="port">{t.portInput}</label>
-              <input id="port" inputMode="numeric" className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 outline-none ring-cyan-400 focus:ring-2" value={port} onChange={(e) => setPort(e.target.value)} />
+              <input id="port" inputMode="text" placeholder="80,443,10000-10010" className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 outline-none ring-cyan-400 focus:ring-2" value={port} onChange={(e) => setPort(normalizePortExpression(e.target.value))} />
+              <p className="text-sm text-slate-400">{t.portHelp}</p>
               <label className="block text-sm text-slate-300" htmlFor="protocol">{t.protocol}</label>
               <select id="protocol" className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3" value={protocol} onChange={(e) => setProtocol(e.target.value as 'tcp' | 'udp')}>
                 <option value="tcp">TCP</option>
                 <option value="udp">UDP</option>
               </select>
-              <div className="rounded-xl bg-slate-950 p-3 text-sm text-slate-300">{port ? `将打开 ${protocol.toUpperCase()} ${port}` : '输入端口后显示操作预览'}</div>
+              <div className="rounded-xl bg-slate-950 p-3 text-sm text-slate-300">{port ? t.previewOpen.replace('{protocol}', protocol.toUpperCase()).replace('{port}', port) : t.previewEmpty}</div>
               <button className="w-full rounded-xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-300 disabled:opacity-60" disabled={loading}>{t.openPort}</button>
             </form>
           </aside>
@@ -303,9 +405,9 @@ function Summary({ state, t }: { state: FirewallState; t: Record<string, string>
   const items = [
     ['OS', state.osType],
     ['Backend', state.backend],
-    ['Running', state.serviceRunning ? 'Yes' : 'No'],
-    ['Enabled', state.serviceEnabled ? 'Yes' : 'No'],
-    ['Policy', state.defaultIncomingPolicy],
+    ['Running', state.serviceRunning ? t.yes : t.no],
+    ['Enabled', state.serviceEnabled ? t.yes : t.no],
+    ['Policy', translatePolicy(state.defaultIncomingPolicy, t)],
     ['Loaded', new Date(state.loadedAt).toLocaleString()],
   ];
   return (
@@ -336,14 +438,14 @@ function PortsTable({ ports, onClose, t }: { ports: PortRule[]; onClose: (rule: 
           <tbody>
             {ports.map((rule) => (
               <tr className="border-t border-white/10" key={`${rule.protocol}-${rule.port}`}>
-                <td className="p-3 font-semibold">{rule.port}</td><td className="p-3 uppercase">{rule.protocol}</td><td className="p-3">{rule.source ?? 'Any'}</td><td className="p-3">{rule.description ?? '-'}</td><td className="p-3"><button onClick={() => onClose(rule)} className="rounded-lg border border-red-300/40 px-3 py-1 text-red-100 hover:bg-red-500/20">{t.close}</button></td>
+                <td className="p-3 font-semibold">{rule.port}</td><td className="p-3 uppercase">{rule.protocol}</td><td className="p-3">{translateSource(rule.source, t)}</td><td className="p-3">{rule.description ?? '-'}</td><td className="p-3"><button onClick={() => onClose(rule)} className="rounded-lg border border-red-300/40 px-3 py-1 text-red-100 hover:bg-red-500/20">{t.close}</button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="space-y-3 md:hidden">
-        {ports.map((rule) => <div className="rounded-2xl bg-slate-950 p-4" key={`${rule.protocol}-${rule.port}`}><div className="text-lg font-semibold">{rule.protocol.toUpperCase()} {rule.port}</div><div className="text-sm text-slate-400">{rule.source ?? 'Any'}</div><button onClick={() => onClose(rule)} className="mt-3 rounded-lg border border-red-300/40 px-3 py-1 text-red-100">{t.close}</button></div>)}
+        {ports.map((rule) => <div className="rounded-2xl bg-slate-950 p-4" key={`${rule.protocol}-${rule.port}`}><div className="text-lg font-semibold">{rule.protocol.toUpperCase()} {rule.port}</div><div className="text-sm text-slate-400">{translateSource(rule.source, t)}</div><button onClick={() => onClose(rule)} className="mt-3 rounded-lg border border-red-300/40 px-3 py-1 text-red-100">{t.close}</button></div>)}
       </div>
     </section>
   );
@@ -362,7 +464,12 @@ function ConfirmDialog({ rule, t, onCancel, onConfirm }: { rule: PortRule; t: Re
 }
 
 function LocaleSwitch({ locale, setLocale }: { locale: Locale; setLocale: (locale: Locale) => void }) {
-  return <select className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" value={locale} onChange={(e) => setLocale(e.target.value as Locale)}><option value="zh-CN">中文</option><option value="en-US">English</option></select>;
+  async function changeLocale(nextLocale: Locale) {
+    setLocale(nextLocale);
+    await api('/api/locale', { method: 'POST', body: JSON.stringify({ locale: nextLocale }) }).catch(() => undefined);
+  }
+
+  return <select className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2" value={locale} onChange={(e) => changeLocale(e.target.value as Locale)}><option value="zh-CN">中文</option><option value="en-US">English</option></select>;
 }
 
 function FullPageMessage({ text }: { text: string }) {

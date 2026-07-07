@@ -16,14 +16,14 @@ type State struct {
 }
 
 type PortRule struct {
-	Port        int    `json:"port"`
+	Port        string `json:"port"`
 	Protocol    string `json:"protocol"`
 	Source      string `json:"source,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
 type PortChangeRequest struct {
-	Port     int    `json:"port"`
+	Port     string `json:"port"`
 	Protocol string `json:"protocol"`
 }
 

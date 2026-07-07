@@ -1335,7 +1335,7 @@ scripts/install.sh
 8. 生成 session secret。
 9. 生成管理员初始密码哈希，或提示用户传入 `--admin-password`。
 10. 写入 systemd service 文件。
-11. 按后端写入 `sudoers.ufw` 或 `sudoers.firewalld`，或安装 root-owned helper。
+11. 按系统自动匹配 UFW 或 firewalld，并写入 `sudoers.ufw` 或 `sudoers.firewalld`。
 12. 执行 `systemctl daemon-reload`。
 13. 启用并启动服务：`systemctl enable --now firewall-manager`。
 14. 输出访问地址和初始管理员信息。
@@ -1352,7 +1352,6 @@ scripts/install.sh
 --generate-self-signed-cert
 --no-tls
 --allow-insecure-remote
---firewall-backend auto|mock|ufw|firewalld
 --firewall-zone public
 --no-sudo
 ```

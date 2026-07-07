@@ -1,6 +1,7 @@
 dist/
 frontend/node_modules/
 frontend/dist/
+frontend/public/favicon.svg
 frontend/.vite/
 frontend/.cache/
 frontend/node_modules/.cache/

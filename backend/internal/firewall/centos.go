@@ -42,16 +42,20 @@ func (s *CentOSService) OpenPort(ctx context.Context, request PortChangeRequest)
 	if err != nil {
 		return State{}, err
 	}
+	specs, _ := ParsePortExpression(req.Port)
 	zone, err := s.zone(ctx)
 	if err != nil {
 		return State{}, err
 	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--add-port="+portArg(req)); err != nil {
-		return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
-	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--permanent", "--zone="+zone, "--add-port="+portArg(req)); err != nil {
-		_, _ = s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--remove-port="+portArg(req))
-		return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
+	for _, spec := range specs {
+		arg := firewalldPortArg(spec, req.Protocol)
+		if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--add-port="+arg); err != nil {
+			return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
+		}
+		if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--permanent", "--zone="+zone, "--add-port="+arg); err != nil {
+			_, _ = s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--remove-port="+arg)
+			return State{}, Error{Code: "PORT_OPEN_FAILED", Message: err.Error()}
+		}
 	}
 	return s.LoadState(ctx)
 }
@@ -61,16 +65,20 @@ func (s *CentOSService) ClosePort(ctx context.Context, request PortChangeRequest
 	if err != nil {
 		return State{}, err
 	}
+	specs, _ := ParsePortExpression(req.Port)
 	zone, err := s.zone(ctx)
 	if err != nil {
 		return State{}, err
 	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--remove-port="+portArg(req)); err != nil {
-		return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
-	}
-	if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--permanent", "--zone="+zone, "--remove-port="+portArg(req)); err != nil {
-		_, _ = s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--add-port="+portArg(req))
-		return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
+	for _, spec := range specs {
+		arg := firewalldPortArg(spec, req.Protocol)
+		if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--remove-port="+arg); err != nil {
+			return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
+		}
+		if _, err := s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--permanent", "--zone="+zone, "--remove-port="+arg); err != nil {
+			_, _ = s.base.Runner.Run(ctx, s.cfg.FirewallCmdPath, "--zone="+zone, "--add-port="+arg)
+			return State{}, Error{Code: "PORT_CLOSE_FAILED", Message: err.Error()}
+		}
 	}
 	return s.LoadState(ctx)
 }
