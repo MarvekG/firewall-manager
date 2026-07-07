@@ -110,6 +110,11 @@ func TestFirewallPortFlow(t *testing.T) {
 	if state.StatusCode != http.StatusOK {
 		t.Fatalf("expected state 200, got %d", state.StatusCode)
 	}
+	var initial firewall.State
+	decode(t, state.Body, &initial)
+	if hasPort(initial.OpenPorts, "10240", "tcp") {
+		t.Fatalf("expected own listen port to be hidden: %#v", initial.OpenPorts)
+	}
 
 	open := request(t, server, http.MethodPost, "/api/firewall/ports", []byte(`{"port":"443,1000-1005","protocol":"tcp"}`), cookies)
 	if open.StatusCode != http.StatusOK {
@@ -124,6 +129,9 @@ func TestFirewallPortFlow(t *testing.T) {
 	}
 	if !hasPort(opened.State.OpenPorts, "1000-1005", "tcp") {
 		t.Fatalf("expected 1000-1005/tcp in state: %#v", opened.State.OpenPorts)
+	}
+	if hasPort(opened.State.OpenPorts, "10240", "tcp") {
+		t.Fatalf("expected own listen port to be hidden after open: %#v", opened.State.OpenPorts)
 	}
 
 	closeResp := request(t, server, http.MethodDelete, "/api/firewall/ports/tcp/1000-1005", nil, cookies)
@@ -201,7 +209,7 @@ type fakeFirewallService struct {
 }
 
 func newFakeFirewallService() *fakeFirewallService {
-	return &fakeFirewallService{ports: []firewall.PortRule{{Port: "22", Protocol: "tcp", Source: "Any", Description: "SSH"}}}
+	return &fakeFirewallService{ports: []firewall.PortRule{{Port: "22", Protocol: "tcp", Source: "Any", Description: "SSH"}, {Port: "10240", Protocol: "tcp", Source: "Any", Description: "Firewall Manager"}}}
 }
 
 func (s *fakeFirewallService) LoadState(ctx context.Context) (firewall.State, error) {

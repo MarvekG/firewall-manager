@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"firewall-manager/backend/internal/auth"
@@ -101,7 +102,7 @@ func (h handler) firewallState(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, firewallErrorCode(err, "FIREWALL_STATE_LOAD_FAILED"))
 		return
 	}
-	writeJSON(w, http.StatusOK, state)
+	writeJSON(w, http.StatusOK, h.frontendState(state))
 }
 
 func (h handler) openPort(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +121,7 @@ func (h handler) openPort(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, firewallErrorCode(err, "PORT_OPEN_FAILED"))
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]firewall.State{"state": state})
+	writeJSON(w, http.StatusOK, map[string]firewall.State{"state": h.frontendState(state)})
 }
 
 func (h handler) closePort(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +137,20 @@ func (h handler) closePort(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, firewallErrorCode(err, "PORT_CLOSE_FAILED"))
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]firewall.State{"state": state})
+	writeJSON(w, http.StatusOK, map[string]firewall.State{"state": h.frontendState(state)})
+}
+
+func (h handler) frontendState(state firewall.State) firewall.State {
+	ownPort := strconv.Itoa(h.deps.Config.Server.Port)
+	ports := make([]firewall.PortRule, 0, len(state.OpenPorts))
+	for _, rule := range state.OpenPorts {
+		if rule.Port == ownPort {
+			continue
+		}
+		ports = append(ports, rule)
+	}
+	state.OpenPorts = ports
+	return state
 }
 
 func (h handler) requireAuth(next http.HandlerFunc) http.HandlerFunc {
