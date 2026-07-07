@@ -53,8 +53,8 @@ firewall-manager, single low-privilege Go process
   |
   v
 FirewallService
-  +-- UbuntuFirewallService, ufw
-  +-- CentOSFirewallService, firewall-cmd
+  +-- UFWService, ufw
+  +-- FirewalldService, firewall-cmd
 
 Privileged commands are controlled through sudoers.
 ```

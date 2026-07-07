@@ -9,16 +9,16 @@ import (
 	"firewall-manager/backend/internal/config"
 )
 
-type UbuntuService struct {
+type UFWService struct {
 	base BaseService
 	cfg  config.FirewallConfig
 }
 
-func NewUbuntuService(base BaseService, cfg config.FirewallConfig) *UbuntuService {
-	return &UbuntuService{base: base, cfg: cfg}
+func NewUFWService(base BaseService, cfg config.FirewallConfig) *UFWService {
+	return &UFWService{base: base, cfg: cfg}
 }
 
-func (s *UbuntuService) LoadState(ctx context.Context) (State, error) {
+func (s *UFWService) LoadState(ctx context.Context) (State, error) {
 	result, err := s.base.Runner.Run(ctx, s.cfg.UFWPath, "status", "verbose")
 	if err != nil {
 		return State{}, Error{Code: "FIREWALL_STATE_LOAD_FAILED", Message: result.Stderr}
@@ -34,7 +34,7 @@ func (s *UbuntuService) LoadState(ctx context.Context) (State, error) {
 	}, nil
 }
 
-func (s *UbuntuService) OpenPort(ctx context.Context, request PortChangeRequest) (State, error) {
+func (s *UFWService) OpenPort(ctx context.Context, request PortChangeRequest) (State, error) {
 	req, err := ValidatePortChange(request)
 	if err != nil {
 		return State{}, err
@@ -48,7 +48,7 @@ func (s *UbuntuService) OpenPort(ctx context.Context, request PortChangeRequest)
 	return s.LoadState(ctx)
 }
 
-func (s *UbuntuService) ClosePort(ctx context.Context, request PortChangeRequest) (State, error) {
+func (s *UFWService) ClosePort(ctx context.Context, request PortChangeRequest) (State, error) {
 	req, err := ValidatePortChange(request)
 	if err != nil {
 		return State{}, err

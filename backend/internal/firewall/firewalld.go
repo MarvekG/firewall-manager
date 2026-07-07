@@ -8,16 +8,16 @@ import (
 	"firewall-manager/backend/internal/config"
 )
 
-type CentOSService struct {
+type FirewalldService struct {
 	base BaseService
 	cfg  config.FirewallConfig
 }
 
-func NewCentOSService(base BaseService, cfg config.FirewallConfig) *CentOSService {
-	return &CentOSService{base: base, cfg: cfg}
+func NewFirewalldService(base BaseService, cfg config.FirewallConfig) *FirewalldService {
+	return &FirewalldService{base: base, cfg: cfg}
 }
 
-func (s *CentOSService) LoadState(ctx context.Context) (State, error) {
+func (s *FirewalldService) LoadState(ctx context.Context) (State, error) {
 	zone, err := s.zone(ctx)
 	if err != nil {
 		return State{}, err
@@ -37,7 +37,7 @@ func (s *CentOSService) LoadState(ctx context.Context) (State, error) {
 	}, nil
 }
 
-func (s *CentOSService) OpenPort(ctx context.Context, request PortChangeRequest) (State, error) {
+func (s *FirewalldService) OpenPort(ctx context.Context, request PortChangeRequest) (State, error) {
 	req, err := ValidatePortChange(request)
 	if err != nil {
 		return State{}, err
@@ -60,7 +60,7 @@ func (s *CentOSService) OpenPort(ctx context.Context, request PortChangeRequest)
 	return s.LoadState(ctx)
 }
 
-func (s *CentOSService) ClosePort(ctx context.Context, request PortChangeRequest) (State, error) {
+func (s *FirewalldService) ClosePort(ctx context.Context, request PortChangeRequest) (State, error) {
 	req, err := ValidatePortChange(request)
 	if err != nil {
 		return State{}, err
@@ -83,7 +83,7 @@ func (s *CentOSService) ClosePort(ctx context.Context, request PortChangeRequest
 	return s.LoadState(ctx)
 }
 
-func (s *CentOSService) zone(ctx context.Context) (string, error) {
+func (s *FirewalldService) zone(ctx context.Context) (string, error) {
 	if s.cfg.CentOSZone != "" {
 		return s.cfg.CentOSZone, nil
 	}

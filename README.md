@@ -53,8 +53,8 @@ firewall-manager，Go 单进程，低权限用户运行
   |
   v
 FirewallService
-  +-- UbuntuFirewallService，ufw
-  +-- CentOSFirewallService，firewall-cmd
+  +-- UFWService，ufw
+  +-- FirewalldService，firewall-cmd
 
 高权限命令通过 sudoers 控制。
 ```

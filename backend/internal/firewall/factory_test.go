@@ -16,8 +16,8 @@ func TestNewServiceExplicitBackends(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ufw service failed: %v", err)
 	}
-	if _, ok := service.(*UbuntuService); !ok {
-		t.Fatalf("expected UbuntuService, got %T", service)
+	if _, ok := service.(*UFWService); !ok {
+		t.Fatalf("expected UFWService, got %T", service)
 	}
 
 	cfg.Backend = "firewalld"
@@ -25,8 +25,8 @@ func TestNewServiceExplicitBackends(t *testing.T) {
 	if err != nil {
 		t.Fatalf("firewalld service failed: %v", err)
 	}
-	if _, ok := service.(*CentOSService); !ok {
-		t.Fatalf("expected CentOSService, got %T", service)
+	if _, ok := service.(*FirewalldService); !ok {
+		t.Fatalf("expected FirewalldService, got %T", service)
 	}
 }
 
@@ -51,8 +51,8 @@ func TestNewServiceAutoDetectsFirewallCmdFirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("auto service failed: %v", err)
 	}
-	if _, ok := service.(*CentOSService); !ok {
-		t.Fatalf("expected CentOSService, got %T", service)
+	if _, ok := service.(*FirewalldService); !ok {
+		t.Fatalf("expected FirewalldService, got %T", service)
 	}
 }
 
@@ -65,8 +65,8 @@ func TestNewServiceAutoDetectsUFWWhenFirewallCmdMissing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("auto service failed: %v", err)
 	}
-	if _, ok := service.(*UbuntuService); !ok {
-		t.Fatalf("expected UbuntuService, got %T", service)
+	if _, ok := service.(*UFWService); !ok {
+		t.Fatalf("expected UFWService, got %T", service)
 	}
 }
 

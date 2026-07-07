@@ -172,8 +172,8 @@ firewall-manager/
       firewall/
         service.go
         base.go
-        centos.go
-        ubuntu.go
+        firewalld.go
+        ufw.go
         factory.go
       httpapi/
       i18n/
@@ -233,11 +233,11 @@ firewall-manager（Go 单进程，低权限用户）
   v
 FirewallService 接口
   |
-  +-- CentOSFirewallService
+  +-- FirewalldService
   |     |
   |     +-- firewalld/firewall-cmd 适配器
   |
-  +-- UbuntuFirewallService
+  +-- UFWService
         |
         +-- ufw 适配器
 
@@ -473,10 +473,10 @@ BaseFirewallService
   validatePortChange(request)
   normalizeCommandError(error)
 
-CentOSFirewallService
+FirewalldService
   base: BaseFirewallService
 
-UbuntuFirewallService
+UFWService
   base: BaseFirewallService
 ```
 
@@ -489,7 +489,7 @@ UbuntuFirewallService
 
 ### 10.2 CentOS 实现
 
-类名：`CentOSFirewallService`。
+类名：`FirewalldService`。
 
 预期后端：通过 `firewall-cmd` 操作 `firewalld`。
 
@@ -542,7 +542,7 @@ firewall-cmd --permanent --zone=<zone> --remove-port=<port>/<protocol>
 
 ### 10.3 Ubuntu 实现
 
-类名：`UbuntuFirewallService`。
+类名：`UFWService`。
 
 预期后端：`ufw`。
 
@@ -583,8 +583,8 @@ ufw delete allow <port>/<protocol>
 
 ```text
 FirewallServiceFactory.create()
-  -> 如果检测到 firewall-cmd，返回 CentOSFirewallService
-  -> 否则如果检测到 ufw，返回 UbuntuFirewallService
+  -> 如果检测到 firewall-cmd，返回 FirewalldService
+  -> 否则如果检测到 ufw，返回 UFWService
   -> 否则抛出 UnsupportedFirewallError
 ```
 

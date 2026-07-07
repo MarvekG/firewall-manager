@@ -16,15 +16,15 @@ func NewService(ctx context.Context, cfg config.FirewallConfig, logger *slog.Log
 
 	switch strings.ToLower(cfg.Backend) {
 	case "ufw", "ubuntu":
-		return NewUbuntuService(base, cfg), nil
+		return NewUFWService(base, cfg), nil
 	case "firewalld", "centos":
-		return NewCentOSService(base, cfg), nil
+		return NewFirewalldService(base, cfg), nil
 	case "auto", "":
 		if commandExists(cfg.FirewallCmdPath) {
-			return NewCentOSService(base, cfg), nil
+			return NewFirewalldService(base, cfg), nil
 		}
 		if commandExists(cfg.UFWPath) {
-			return NewUbuntuService(base, cfg), nil
+			return NewUFWService(base, cfg), nil
 		}
 		return nil, Error{Code: "UNSUPPORTED_OS", Message: "no supported firewall command found"}
 	default:
