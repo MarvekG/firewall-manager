@@ -1,0 +1,16 @@
+dist/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/node_modules/.cache/
+frontend/node_modules/.tmp/
+frontend/*.tsbuildinfo
+backend/internal/staticweb/dist/*
+!backend/internal/staticweb/dist/.gitkeep
+backend/bin/
+backend/coverage.out
+*.test
+*.log
+*.tmp
+.DS_Store

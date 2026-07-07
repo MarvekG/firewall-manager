@@ -1,0 +1,11 @@
+# Sudoers rules for Firewall Manager on Ubuntu/UFW.
+# Installed as /etc/sudoers.d/firewall-manager by scripts/install.sh when backend is ufw.
+# Sudoers wildcards are glob-style. The application still performs strict port/protocol validation before command execution.
+
+firewall-manager ALL=(root) NOPASSWD: /usr/sbin/ufw status verbose
+firewall-manager ALL=(root) NOPASSWD: /usr/sbin/ufw allow [0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/sbin/ufw allow [0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/sbin/ufw delete allow [0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/sbin/ufw delete allow [0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/systemctl is-enabled ufw
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/systemctl is-active ufw

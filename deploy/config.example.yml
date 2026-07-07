@@ -1,0 +1,14 @@
+server:
+  host: 127.0.0.1
+  port: 10240
+  tls:
+    enabled: false
+auth:
+  admin_user: admin
+  session_ttl_minutes: 480
+firewall:
+  backend: auto
+  use_sudo: true
+  command_timeout_seconds: 10
+  centos:
+    zone: auto

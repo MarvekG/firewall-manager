@@ -1,0 +1,18 @@
+# Sudoers rules for Firewall Manager on CentOS/firewalld.
+# Installed as /etc/sudoers.d/firewall-manager by scripts/install.sh when backend is firewalld.
+# This file intentionally does not allow firewall-cmd --reload, --complete-reload, or --runtime-to-permanent.
+# Sudoers wildcards are glob-style. The application still performs strict port/protocol validation before command execution.
+
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --state
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --get-default-zone
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --zone=* --list-ports
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --zone=* --add-port=[0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --zone=* --add-port=[0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --permanent --zone=* --add-port=[0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --permanent --zone=* --add-port=[0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --zone=* --remove-port=[0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --zone=* --remove-port=[0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --permanent --zone=* --remove-port=[0-9]*/tcp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/firewall-cmd --permanent --zone=* --remove-port=[0-9]*/udp
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/systemctl is-enabled firewalld
+firewall-manager ALL=(root) NOPASSWD: /usr/bin/systemctl is-active firewalld
