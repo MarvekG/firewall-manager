@@ -44,7 +44,6 @@ type FirewallConfig struct {
 	FirewallCmdPath string
 	UFWPath         string
 	SystemctlPath   string
-	OSReleasePath   string
 }
 
 func Load() Config {
@@ -79,7 +78,6 @@ func Load() Config {
 			FirewallCmdPath: env("FIREWALL_MANAGER_FIREWALL_CMD", "firewall-cmd"),
 			UFWPath:         env("FIREWALL_MANAGER_UFW", "ufw"),
 			SystemctlPath:   env("FIREWALL_MANAGER_SYSTEMCTL", "systemctl"),
-			OSReleasePath:   env("FIREWALL_MANAGER_OS_RELEASE", "/etc/os-release"),
 		},
 	}
 }

@@ -495,7 +495,6 @@ UbuntuFirewallService
 
 检测逻辑：
 
-- 检查 `/etc/os-release` 中的 `ID=centos`。如果希望兼容同族发行版，可同时支持 `ID=rhel`、`ID=rocky`、`ID=almalinux`。
 - 检查 `firewall-cmd` 是否存在。
 - 检查 `systemctl is-enabled firewalld` 和 `systemctl is-active firewalld`。
 
@@ -549,7 +548,6 @@ firewall-cmd --permanent --zone=<zone> --remove-port=<port>/<protocol>
 
 检测逻辑：
 
-- 检查 `/etc/os-release` 中的 `ID=ubuntu`。
 - 检查 `ufw` 是否存在。
 - 检查 `ufw status`。
 
@@ -1231,8 +1229,8 @@ CSRF token 如果通过 cookie 暴露给前端读取，则该 CSRF cookie 不能
 
 - 登录成功和失败。
 - 防火墙 API 的认证保护。
-- 使用 mock command runner 测试 `GET /api/firewall/state`。
-- 使用 mock command runner 测试打开/关闭端口。
+- 使用 fake command runner 测试 `GET /api/firewall/state`。
+- 使用 fake command runner 测试打开/关闭端口。
 - 中文和英文 UI 文案加载。
 
 ### 18.3 手工系统测试

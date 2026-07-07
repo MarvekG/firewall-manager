@@ -23,14 +23,14 @@ func TestLoadEnvOverrides(t *testing.T) {
 	t.Setenv("FIREWALL_MANAGER_HOST", "0.0.0.0")
 	t.Setenv("FIREWALL_MANAGER_PORT", "12345")
 	t.Setenv("FIREWALL_MANAGER_TLS_ENABLED", "true")
-	t.Setenv("FIREWALL_MANAGER_FIREWALL_BACKEND", "mock")
+	t.Setenv("FIREWALL_MANAGER_FIREWALL_BACKEND", "ufw")
 	t.Setenv("FIREWALL_MANAGER_USE_SUDO", "false")
 
 	cfg := Load()
 	if cfg.Server.Host != "0.0.0.0" || cfg.Server.Port != 12345 || !cfg.Server.TLS.Enabled {
 		t.Fatalf("unexpected server config: %#v", cfg.Server)
 	}
-	if cfg.Firewall.Backend != "mock" || cfg.Firewall.UseSudo {
+	if cfg.Firewall.Backend != "ufw" || cfg.Firewall.UseSudo {
 		t.Fatalf("unexpected firewall config: %#v", cfg.Firewall)
 	}
 }

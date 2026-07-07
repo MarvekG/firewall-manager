@@ -40,7 +40,11 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 
 random_token() {
-  openssl rand -base64 18 2>/dev/null | tr -d '=+/[:space:]' | cut -c1-20
+  local token
+  set +o pipefail
+  token="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+  set -o pipefail
+  printf '%s' "$token"
 }
 
 if [[ -z "$ADMIN_USER" ]]; then
@@ -76,7 +80,7 @@ id -u firewall-manager >/dev/null 2>&1 || useradd --system --home-dir /var/lib/f
 mkdir -p /etc/firewall-manager /var/lib/firewall-manager /var/log/firewall-manager
 install -m 0755 "$BIN_SOURCE" /usr/local/bin/firewall-manager
 
-SESSION_SECRET="$(openssl rand -base64 32 2>/dev/null || date +%s%N)"
+SESSION_SECRET="$(random_token)$(random_token)"
 cat >/etc/firewall-manager/env <<EOF
 FIREWALL_MANAGER_HOST=$LISTEN_HOST
 FIREWALL_MANAGER_PORT=$LISTEN_PORT

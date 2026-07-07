@@ -15,8 +15,6 @@ func NewService(ctx context.Context, cfg config.FirewallConfig, logger *slog.Log
 	base := BaseService{Runner: runner}
 
 	switch strings.ToLower(cfg.Backend) {
-	case "mock", "development":
-		return NewMockService(), nil
 	case "ufw", "ubuntu":
 		return NewUbuntuService(base, cfg), nil
 	case "firewalld", "centos":
@@ -50,18 +48,4 @@ func commandExists(name string) bool {
 		}
 	}
 	return false
-}
-
-func readOSID(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "ID=") {
-			return strings.Trim(strings.TrimPrefix(line, "ID="), "\"")
-		}
-	}
-	return ""
 }

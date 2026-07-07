@@ -25,8 +25,10 @@ dist/      发布产物
 
 ```bash
 cd backend
-FIREWALL_MANAGER_FIREWALL_BACKEND=mock go run ./cmd/firewall-manager
+go run ./cmd/firewall-manager
 ```
+
+后端启动需要当前节点存在 `firewall-cmd` 或 `ufw` 命令，并会按命令自动选择真实防火墙后端。
 
 访问：
 
@@ -58,6 +60,32 @@ admin / admin
 
 ## 构建发布包
 
+构建机需要 Go、nvm、最新版 Node.js 和 npm。
+
+Ubuntu/Debian 构建机：
+
+```bash
+sudo apt update
+sudo apt install -y golang-go curl ca-certificates
+```
+
+CentOS/RHEL/Rocky/Alma/Fedora 构建机：
+
+```bash
+sudo dnf install -y golang curl ca-certificates
+```
+
+安装 nvm 和最新版 Node.js：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
+. "$HOME/.nvm/nvm.sh"
+nvm install node
+nvm use node
+node --version
+npm --version
+```
+
 ```bash
 bash scripts/build-release.sh
 ```
@@ -74,6 +102,47 @@ dist/deploy/sudoers.ufw
 dist/deploy/sudoers.firewalld
 dist/deploy/config.example.yml
 ```
+
+## 安装系统依赖
+
+目标服务器不需要 Node.js、npm、Go 或 OpenSSL，只需要 systemd、sudo 和一个真实防火墙后端命令。
+
+安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。两个命令都不存在时安装失败。
+
+Ubuntu/Debian 使用 UFW：
+
+```bash
+sudo apt update
+sudo apt install -y ufw sudo
+sudo systemctl enable --now ufw
+```
+
+Ubuntu/Debian 使用 firewalld：
+
+```bash
+sudo apt update
+sudo apt install -y firewalld sudo
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --state
+```
+
+CentOS/RHEL/Rocky/Alma/Fedora 使用 firewalld：
+
+```bash
+sudo dnf install -y firewalld sudo
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --state
+```
+
+CentOS 7 使用 firewalld：
+
+```bash
+sudo yum install -y firewalld sudo
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --state
+```
+
+如果同一台机器同时安装了 `firewall-cmd` 和 `ufw`，会选择 firewalld。不要同时启用两个防火墙后端管理同一套规则。
 
 ## 安装 Ubuntu/UFW
 
@@ -193,10 +262,9 @@ cd ..
 bash scripts/build-release.sh
 ```
 
-启动发布二进制：
+启动发布二进制时会自动检测真实防火墙后端，当前节点需要存在 `firewall-cmd` 或 `ufw`：
 
 ```bash
-FIREWALL_MANAGER_FIREWALL_BACKEND=mock \
 FIREWALL_MANAGER_PORT=10240 \
 ./dist/firewall-manager
 ```

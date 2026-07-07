@@ -32,7 +32,6 @@ Firewall Manager uses a Go backend and a Vite React frontend. The source code is
 - Close ports with confirmation.
 - Ubuntu/UFW adapter.
 - CentOS/firewalld adapter.
-- Mock backend for development.
 - Install, reinstall, and uninstall scripts.
 
 ## Architecture
@@ -80,8 +79,10 @@ Backend:
 
 ```bash
 cd backend
-FIREWALL_MANAGER_FIREWALL_BACKEND=mock go run ./cmd/firewall-manager
+go run ./cmd/firewall-manager
 ```
+
+The backend requires `firewall-cmd` or `ufw` on the node and automatically selects the real firewall backend by command availability.
 
 Frontend:
 

@@ -2,11 +2,14 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,9 +190,77 @@ func newTestServer() *httptest.Server {
 		},
 		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Sessions:        auth.NewSessionManager([]byte("test-secret"), time.Hour),
-		FirewallService: firewall.NewMockService(),
+		FirewallService: newFakeFirewallService(),
 	})
 	return httptest.NewServer(mux)
+}
+
+type fakeFirewallService struct {
+	mu    sync.Mutex
+	ports []firewall.PortRule
+}
+
+func newFakeFirewallService() *fakeFirewallService {
+	return &fakeFirewallService{ports: []firewall.PortRule{{Port: "22", Protocol: "tcp", Source: "Any", Description: "SSH"}}}
+}
+
+func (s *fakeFirewallService) LoadState(ctx context.Context) (firewall.State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.state(), nil
+}
+
+func (s *fakeFirewallService) OpenPort(ctx context.Context, request firewall.PortChangeRequest) (firewall.State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	req, err := firewall.ValidatePortChange(request)
+	if err != nil {
+		return firewall.State{}, err
+	}
+	specs, _ := firewall.ParsePortExpression(req.Port)
+	for _, spec := range specs {
+		exists := false
+		for _, port := range s.ports {
+			if port.Port == spec.Value && port.Protocol == req.Protocol {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			s.ports = append(s.ports, firewall.PortRule{Port: spec.Value, Protocol: req.Protocol, Source: "Any"})
+		}
+	}
+	return s.state(), nil
+}
+
+func (s *fakeFirewallService) ClosePort(ctx context.Context, request firewall.PortChangeRequest) (firewall.State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	req, err := firewall.ValidatePortChange(request)
+	if err != nil {
+		return firewall.State{}, err
+	}
+	specs, _ := firewall.ParsePortExpression(req.Port)
+	remove := map[string]bool{}
+	for _, spec := range specs {
+		remove[spec.Value] = true
+	}
+	s.ports = slices.DeleteFunc(s.ports, func(port firewall.PortRule) bool {
+		return remove[port.Port] && port.Protocol == req.Protocol
+	})
+	return s.state(), nil
+}
+
+func (s *fakeFirewallService) state() firewall.State {
+	return firewall.State{
+		OSType:                "test",
+		Backend:               "fake",
+		ServiceEnabled:        true,
+		ServiceRunning:        true,
+		DefaultIncomingPolicy: "deny",
+		OpenPorts:             slices.Clone(s.ports),
+		LoadedAt:              time.Now().UTC(),
+	}
 }
 
 func loginCookies(t *testing.T, server *httptest.Server) []*http.Cookie {

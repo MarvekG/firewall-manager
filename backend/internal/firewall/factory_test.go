@@ -11,17 +11,8 @@ import (
 )
 
 func TestNewServiceExplicitBackends(t *testing.T) {
-	cfg := config.FirewallConfig{Backend: "mock", CommandTimeout: time.Second}
+	cfg := config.FirewallConfig{Backend: "ufw", CommandTimeout: time.Second}
 	service, err := NewService(context.Background(), cfg, nil)
-	if err != nil {
-		t.Fatalf("mock service failed: %v", err)
-	}
-	if _, ok := service.(*MockService); !ok {
-		t.Fatalf("expected mock service, got %T", service)
-	}
-
-	cfg.Backend = "ufw"
-	service, err = NewService(context.Background(), cfg, nil)
 	if err != nil {
 		t.Fatalf("ufw service failed: %v", err)
 	}
@@ -36,6 +27,16 @@ func TestNewServiceExplicitBackends(t *testing.T) {
 	}
 	if _, ok := service.(*CentOSService); !ok {
 		t.Fatalf("expected CentOSService, got %T", service)
+	}
+}
+
+func TestNewServiceRejectsUnsupportedBackend(t *testing.T) {
+	_, err := NewService(context.Background(), config.FirewallConfig{Backend: "test", CommandTimeout: time.Second}, nil)
+	if err == nil {
+		t.Fatalf("expected unsupported backend to be rejected")
+	}
+	if fwErr, ok := err.(Error); !ok || fwErr.Code != "UNSUPPORTED_OS" {
+		t.Fatalf("unexpected error: %#v", err)
 	}
 }
 
