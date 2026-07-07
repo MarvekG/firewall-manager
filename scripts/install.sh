@@ -55,33 +55,12 @@ has_command() {
 }
 
 detect_firewall_backend() {
-  local os_id=""
-  if [[ -f /etc/os-release ]]; then
-    os_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
-  fi
-
-  if [[ "$os_id" == "ubuntu" || "$os_id" == "debian" ]]; then
-    if has_command ufw; then
-      printf 'ufw'
-      return 0
-    fi
-  fi
-
-  case "$os_id" in
-    centos|rhel|rocky|almalinux|fedora)
-      if has_command firewall-cmd; then
-        printf 'firewalld'
-        return 0
-      fi
-      ;;
-  esac
-
-  if has_command ufw; then
-    printf 'ufw'
-    return 0
-  fi
   if has_command firewall-cmd; then
     printf 'firewalld'
+    return 0
+  fi
+  if has_command ufw; then
+    printf 'ufw'
     return 0
   fi
 

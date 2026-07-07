@@ -135,6 +135,8 @@ dist/deploy/sudoers.firewalld
 
 ## 安装 Ubuntu/UFW
 
+安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
+
 ```bash
 cd dist
 sudo ./install.sh \
@@ -153,6 +155,8 @@ sudo ./install.sh \
 ```
 
 ## 安装 CentOS/firewalld
+
+安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
 
 ```bash
 cd dist

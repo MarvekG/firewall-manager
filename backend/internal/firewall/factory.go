@@ -22,27 +22,16 @@ func NewService(ctx context.Context, cfg config.FirewallConfig, logger *slog.Log
 	case "firewalld", "centos":
 		return NewCentOSService(base, cfg), nil
 	case "auto", "":
-		osID := readOSID(cfg.OSReleasePath)
-		if osID == "ubuntu" && commandExists(cfg.UFWPath) {
-			return NewUbuntuService(base, cfg), nil
-		}
-		if isFirewalldOS(osID) && commandExists(cfg.FirewallCmdPath) {
+		if commandExists(cfg.FirewallCmdPath) {
 			return NewCentOSService(base, cfg), nil
 		}
 		if commandExists(cfg.UFWPath) {
 			return NewUbuntuService(base, cfg), nil
 		}
-		if commandExists(cfg.FirewallCmdPath) {
-			return NewCentOSService(base, cfg), nil
-		}
-		return nil, Error{Code: "UNSUPPORTED_OS", Message: "unsupported os id: " + osID}
+		return nil, Error{Code: "UNSUPPORTED_OS", Message: "no supported firewall command found"}
 	default:
 		return nil, Error{Code: "UNSUPPORTED_OS", Message: "unsupported firewall backend: " + cfg.Backend}
 	}
-}
-
-func isFirewalldOS(osID string) bool {
-	return osID == "centos" || osID == "rhel" || osID == "rocky" || osID == "almalinux" || osID == "fedora"
 }
 
 func commandExists(name string) bool {

@@ -39,14 +39,28 @@ func TestNewServiceExplicitBackends(t *testing.T) {
 	}
 }
 
-func TestNewServiceAutoDetectsOSRelease(t *testing.T) {
+func TestNewServiceAutoDetectsFirewallCmdFirst(t *testing.T) {
 	dir := t.TempDir()
-	osRelease := filepath.Join(dir, "os-release")
-	if err := os.WriteFile(osRelease, []byte("ID=ubuntu\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	firewallCmd := filepath.Join(dir, "firewall-cmd")
+	ufw := filepath.Join(dir, "ufw")
+	writeExecutable(t, firewallCmd)
+	writeExecutable(t, ufw)
 
-	service, err := NewService(context.Background(), config.FirewallConfig{Backend: "auto", OSReleasePath: osRelease, UFWPath: os.Args[0], CommandTimeout: time.Second}, nil)
+	service, err := NewService(context.Background(), config.FirewallConfig{Backend: "auto", FirewallCmdPath: firewallCmd, UFWPath: ufw, CommandTimeout: time.Second}, nil)
+	if err != nil {
+		t.Fatalf("auto service failed: %v", err)
+	}
+	if _, ok := service.(*CentOSService); !ok {
+		t.Fatalf("expected CentOSService, got %T", service)
+	}
+}
+
+func TestNewServiceAutoDetectsUFWWhenFirewallCmdMissing(t *testing.T) {
+	dir := t.TempDir()
+	ufw := filepath.Join(dir, "ufw")
+	writeExecutable(t, ufw)
+
+	service, err := NewService(context.Background(), config.FirewallConfig{Backend: "auto", FirewallCmdPath: filepath.Join(dir, "missing-firewall-cmd"), UFWPath: ufw, CommandTimeout: time.Second}, nil)
 	if err != nil {
 		t.Fatalf("auto service failed: %v", err)
 	}
@@ -57,16 +71,19 @@ func TestNewServiceAutoDetectsOSRelease(t *testing.T) {
 
 func TestNewServiceUnsupportedOS(t *testing.T) {
 	dir := t.TempDir()
-	osRelease := filepath.Join(dir, "os-release")
-	if err := os.WriteFile(osRelease, []byte("ID=unsupported\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 
-	_, err := NewService(context.Background(), config.FirewallConfig{Backend: "auto", OSReleasePath: osRelease, CommandTimeout: time.Second}, nil)
+	_, err := NewService(context.Background(), config.FirewallConfig{Backend: "auto", FirewallCmdPath: filepath.Join(dir, "missing-firewall-cmd"), UFWPath: filepath.Join(dir, "missing-ufw"), CommandTimeout: time.Second}, nil)
 	if err == nil {
-		t.Fatalf("expected unsupported OS error")
+		t.Fatalf("expected unsupported backend error")
 	}
 	if fwErr, ok := err.(Error); !ok || fwErr.Code != "UNSUPPORTED_OS" {
 		t.Fatalf("unexpected error: %#v", err)
+	}
+}
+
+func writeExecutable(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o700); err != nil {
+		t.Fatal(err)
 	}
 }

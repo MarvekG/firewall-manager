@@ -107,6 +107,8 @@ Release files are generated in `dist/`.
 
 ## Install on Ubuntu/UFW
 
+The installer selects the backend only from commands available on the node: `firewall-cmd` means firewalld, otherwise `ufw` means UFW.
+
 ```bash
 cd dist
 sudo ./install.sh \
@@ -119,6 +121,8 @@ sudo ./install.sh \
 ```
 
 ## Install on CentOS/firewalld
+
+The installer selects the backend only from commands available on the node: `firewall-cmd` means firewalld, otherwise `ufw` means UFW.
 
 ```bash
 cd dist

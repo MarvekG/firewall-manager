@@ -585,8 +585,8 @@ ufw delete allow <port>/<protocol>
 
 ```text
 FirewallServiceFactory.create()
-  -> 如果检测到 CentOS/firewalld，返回 CentOSFirewallService
-  -> 如果检测到 Ubuntu/ufw，返回 UbuntuFirewallService
+  -> 如果检测到 firewall-cmd，返回 CentOSFirewallService
+  -> 否则如果检测到 ufw，返回 UbuntuFirewallService
   -> 否则抛出 UnsupportedFirewallError
 ```
 
@@ -623,7 +623,7 @@ CentOS/firewalld 的端口开关流程必须遵守以下约束：
 
 应用启动时执行：
 
-1. 检测操作系统和防火墙后端。
+1. 按节点上的可用命令检测防火墙后端。
 2. 创建对应的 `FirewallService` 实例。
 3. 加载初始 `FirewallState`。
 4. 将状态保存在内存中，作为最近一次已知状态。
@@ -1325,8 +1325,8 @@ scripts/install.sh
 
 脚本职责：
 
-1. 检查当前系统是 Ubuntu 或 CentOS。
-2. 检查必要命令：`systemctl`、`sudo`、`firewall-cmd` 或 `ufw`。
+1. 检查必要系统能力：`systemctl`、`sudo`。
+2. 按节点上的命令自动选择防火墙后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
 3. 创建低权限用户和组：`firewall-manager`。
 4. 创建目录：`/etc/firewall-manager`、`/var/lib/firewall-manager`、`/var/log/firewall-manager`。
 5. 安装 `firewall-manager` 二进制到 `/usr/local/bin/firewall-manager`。
@@ -1335,7 +1335,7 @@ scripts/install.sh
 8. 生成 session secret。
 9. 生成管理员初始密码哈希，或提示用户传入 `--admin-password`。
 10. 写入 systemd service 文件。
-11. 按系统自动匹配 UFW 或 firewalld，并写入 `sudoers.ufw` 或 `sudoers.firewalld`。
+11. 按检测到的命令匹配 UFW 或 firewalld，并写入 `sudoers.ufw` 或 `sudoers.firewalld`。
 12. 执行 `systemctl daemon-reload`。
 13. 启用并启动服务：`systemctl enable --now firewall-manager`。
 14. 输出访问地址和初始管理员信息。
