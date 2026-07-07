@@ -139,6 +139,7 @@ dist/deploy/sudoers.firewalld
 ## 安装 Ubuntu/UFW
 
 安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
+安装时会开放 `--listen-port` 指定的 TCP 端口，默认是 `10240/tcp`。
 
 ```bash
 cd dist
@@ -160,6 +161,7 @@ sudo ./install.sh \
 ## 安装 CentOS/firewalld
 
 安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
+安装时会开放 `--listen-port` 指定的 TCP 端口，默认是 `10240/tcp`。
 
 ```bash
 cd dist
@@ -211,6 +213,8 @@ sudo ./reinstall.sh \
 ```
 
 ## 卸载
+
+卸载时会读取 `/etc/firewall-manager/env`，关闭安装时使用的监听 TCP 端口。
 
 完全卸载：
 

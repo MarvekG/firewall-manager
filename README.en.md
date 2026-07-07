@@ -111,6 +111,7 @@ Release files are generated in `dist/`.
 ## Install on Ubuntu/UFW
 
 The installer selects the backend only from commands available on the node: `firewall-cmd` means firewalld, otherwise `ufw` means UFW.
+The installer opens the TCP port from `--listen-port`; the default is `10240/tcp`.
 
 ```bash
 cd dist
@@ -126,6 +127,7 @@ sudo ./install.sh \
 ## Install on CentOS/firewalld
 
 The installer selects the backend only from commands available on the node: `firewall-cmd` means firewalld, otherwise `ufw` means UFW.
+The installer opens the TCP port from `--listen-port`; the default is `10240/tcp`.
 
 ```bash
 cd dist
@@ -153,6 +155,8 @@ sudo ./reinstall.sh \
 ```
 
 ## Uninstall
+
+The uninstaller reads `/etc/firewall-manager/env` and closes the installed TCP listen port.
 
 ```bash
 cd dist

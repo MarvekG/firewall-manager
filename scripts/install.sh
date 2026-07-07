@@ -71,6 +71,22 @@ detect_firewall_backend() {
   return 1
 }
 
+open_firewall_port() {
+  case "$FIREWALL_BACKEND" in
+    ufw)
+      ufw allow "${LISTEN_PORT}/tcp" >/dev/null
+      ;;
+    firewalld)
+      local zone_arg=""
+      if [[ -n "$FIREWALL_ZONE" ]]; then
+        zone_arg="--zone=$FIREWALL_ZONE"
+      fi
+      firewall-cmd $zone_arg --add-port="${LISTEN_PORT}/tcp" >/dev/null
+      firewall-cmd --permanent $zone_arg --add-port="${LISTEN_PORT}/tcp" >/dev/null
+      ;;
+  esac
+}
+
 if ! FIREWALL_BACKEND="$(detect_firewall_backend)"; then
   printf 'No supported firewall backend found. Install ufw or firewalld/firewall-cmd first.\n' >&2
   exit 1
@@ -119,6 +135,7 @@ esac
 if [[ -f /etc/sudoers.d/firewall-manager ]]; then
   visudo -cf /etc/sudoers.d/firewall-manager >/dev/null
 fi
+open_firewall_port
 systemctl daemon-reload
 systemctl enable --now firewall-manager
 

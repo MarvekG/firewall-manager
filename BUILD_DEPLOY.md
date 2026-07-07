@@ -66,13 +66,13 @@ Ubuntu/Debian 构建机：
 
 ```bash
 sudo apt update
-sudo apt install -y golang-go curl ca-certificates
+sudo apt install -y golang-go curl ca-certificates libatomic1
 ```
 
 CentOS/RHEL/Rocky/Alma/Fedora 构建机：
 
 ```bash
-sudo dnf install -y golang curl ca-certificates
+sudo dnf install -y golang curl ca-certificates libatomic
 ```
 
 安装 nvm 和最新版 Node.js：
@@ -84,6 +84,19 @@ nvm install node
 nvm use node
 node --version
 npm --version
+```
+
+如果 `node --version` 报错缺少 `libatomic.so.1`，说明系统没有安装 Node 所需的 `libatomic` 运行库：
+
+```bash
+# Ubuntu/Debian
+sudo apt install -y libatomic1
+
+# CentOS/RHEL/Rocky/Alma/Fedora
+sudo dnf install -y libatomic
+
+# CentOS 7
+sudo yum install -y libatomic
 ```
 
 ```bash
@@ -147,6 +160,7 @@ sudo firewall-cmd --state
 ## 安装 Ubuntu/UFW
 
 安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
+安装时会开放 `--listen-port` 指定的 TCP 端口，默认是 `10240/tcp`。
 
 ```bash
 cd dist
@@ -168,6 +182,7 @@ sudo ./install.sh \
 ## 安装 CentOS/firewalld
 
 安装脚本只按节点上的命令自动选择后端：检测到 `firewall-cmd` 时使用 firewalld，否则检测到 `ufw` 时使用 UFW。
+安装时会开放 `--listen-port` 指定的 TCP 端口，默认是 `10240/tcp`。
 
 ```bash
 cd dist
@@ -225,6 +240,8 @@ sudo ./reinstall.sh \
 ```
 
 ## 卸载
+
+卸载时会读取 `/etc/firewall-manager/env`，关闭安装时使用的监听 TCP 端口。
 
 完全卸载，包括配置、数据、日志和系统用户：
 
