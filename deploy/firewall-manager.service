@@ -10,9 +10,6 @@ EnvironmentFile=/etc/firewall-manager/env
 ExecStart=/usr/local/bin/firewall-manager
 Restart=on-failure
 PrivateTmp=true
-ProtectHome=true
-ProtectSystem=strict
-ReadWritePaths=/run /etc/ufw /var/lib/firewall-manager /var/log/firewall-manager
 
 [Install]
 WantedBy=multi-user.target
