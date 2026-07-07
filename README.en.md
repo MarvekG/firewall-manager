@@ -91,11 +91,13 @@ npm install
 npm run dev
 ```
 
-Default development account:
+When local development auth environment variables are not set, the backend falls back to:
 
 ```text
 admin / admin
 ```
+
+For production installs, use the credentials printed by the installer or set `--admin-user` / `--admin-password` explicitly.
 
 ## Build
 
@@ -167,7 +169,7 @@ sudo ./uninstall.sh --keep-data
 
 - Prefer HTTPS.
 - Use HTTP only on localhost or trusted networks.
-- Never use the default development password in production.
+- Never use the development fallback credentials in production.
 - Sudoers files are production files, but sudoers wildcards are glob-style. The application still validates port and protocol strictly before command execution.
 - The firewalld adapter never runs `firewall-cmd --reload`.
 - The firewalld adapter never runs `firewall-cmd --runtime-to-permanent`.
